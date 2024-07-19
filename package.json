@@ -1,0 +1,19 @@
+{
+  "name": "discord-rollbot",
+  "version": "1.0.0",
+  "description": "A discord rollbot",
+  "main": "src/index.ts",
+  "author": "Pro Target",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "start": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@types/node": "^20.14.11",
+    "@types/node-fetch": "^2.6.11",
+    "discord.js": "^14.15.3",
+    "node-fetch": "^3.3.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
+  }
+}
