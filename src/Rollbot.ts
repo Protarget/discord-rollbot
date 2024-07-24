@@ -26,7 +26,8 @@ export default class Rollbot {
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.GuildMessagePolls, 
             GatewayIntentBits.GuildMessageReactions,
-            GatewayIntentBits.MessageContent
+            GatewayIntentBits.MessageContent,
+            GatewayIntentBits.GuildMembers
         ]})
 
         this.registerCommands()
