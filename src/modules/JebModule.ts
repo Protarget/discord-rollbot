@@ -25,14 +25,16 @@ export default class JebModule extends Module {
                 for (const imageEmbed of message.embeds.filter(x => x.data.type === "image")) {
                     const attachment = await this.doJeb(imageEmbed)
                     if (attachment) {
-                        interaction.reply({files: [attachment]})
+                        const message = await interaction.reply({files: [attachment], fetchReply: true})
+                        await message.react("❗")
                         return
                     }
                 }
                 for (const imageAttachment of message.attachments.reverse().values()) {
                     const attachment = await this.doJeb(imageAttachment)
                     if (attachment) {
-                        interaction.reply({files: [attachment]})
+                        const message = await interaction.reply({files: [attachment], fetchReply: true})
+                        await message.react("❗")
                         return
                     }
                 }
@@ -58,7 +60,8 @@ export default class JebModule extends Module {
             const attachment = await this.doJeb(imageAttachment)
 
             if (attachment) {
-                interaction.reply({files: [attachment]})
+                const message = await interaction.reply({files: [attachment], fetchReply: true})
+                await message.react("❗")
             }
             else {
                 interaction.reply({
