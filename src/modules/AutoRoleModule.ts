@@ -208,7 +208,7 @@ export default class AutoRoleModule implements Module {
             {
                 data: new SlashCommandBuilder()
                     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
-                    .setName("autorole")
+                    .setName("ar")
                     .setDescription("Manage roles assigned to joining users automatically")
                     .addSubcommand(subcommand => subcommand
                         .setName("create")
