@@ -3,6 +3,7 @@ import CompleteModule from "./modules/CompleteModule"
 import RollModule from "./modules/RollModule"
 import AutoRoleModule from "./modules/AutoRoleModule"
 import * as fs from "fs"
+import JebModule from "./modules/JebModule"
 
 async function launchBot() {
     const rollbot = new Rollbot(
@@ -10,7 +11,8 @@ async function launchBot() {
             fs.readFileSync("secrets/discord_client_id").toString("utf-8").trim(), [
         new RollModule(),
         new CompleteModule(),
-        new AutoRoleModule("roles.json")
+        new AutoRoleModule("roles.json"),
+        new JebModule()
     ])
 
     process.on("beforeExit", async () => {
