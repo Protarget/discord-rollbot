@@ -17,6 +17,7 @@ export default class JebModule extends Module {
 
     public async onJeb(interaction: ChatInputCommandInteraction) {
         try {
+            await interaction.deferReply()
             const messages = await interaction.channel.messages.fetch({
                 limit: 100
             })
@@ -25,7 +26,7 @@ export default class JebModule extends Module {
                 for (const imageEmbed of message.embeds.filter(x => x.data.type === "image")) {
                     const attachment = await this.doJeb(imageEmbed)
                     if (attachment) {
-                        const message = await interaction.reply({files: [attachment], fetchReply: true})
+                        const message = await interaction.followUp({files: [attachment], fetchReply: true})
                         await message.react("❗")
                         return
                     }
@@ -33,38 +34,44 @@ export default class JebModule extends Module {
                 for (const imageAttachment of message.attachments.reverse().values()) {
                     const attachment = await this.doJeb(imageAttachment)
                     if (attachment) {
-                        const message = await interaction.reply({files: [attachment], fetchReply: true})
+                        const message = await interaction.followUp({files: [attachment], fetchReply: true})
                         await message.react("❗")
                         return
                     }
                 }
             }
 
-            interaction.reply({
+            await interaction.followUp({
                 content: "Unable to find jebbable image within the last 100 messages",
                 ephemeral: true
             })
 
         } catch (e) {
             console.error("Something went wrong jebbing", e)
-            interaction.reply({
-                content: "Unexpected error occured whilst jebbing",
-                ephemeral: true
-            })
+            try {
+                await interaction.followUp({
+                    content: "Unexpected error occured whilst jebbing",
+                    ephemeral: true
+                })
+            }
+            catch (e2) {
+                console.error("Something went wrong replying due to eror", e)
+            }
         }
     }
 
     public async onJebUpload(interaction: ChatInputCommandInteraction) {
         try {
+            await interaction.deferReply()
             const imageAttachment = interaction.options.getAttachment("image", true)
             const attachment = await this.doJeb(imageAttachment)
 
             if (attachment) {
-                const message = await interaction.reply({files: [attachment], fetchReply: true})
+                const message = await interaction.followUp({files: [attachment], fetchReply: true})
                 await message.react("❗")
             }
             else {
-                interaction.reply({
+                await interaction.followUp({
                     content: "Unable to jebbify attachment, please make sure it is an image",
                     ephemeral: true
                 })
@@ -72,10 +79,15 @@ export default class JebModule extends Module {
         }
         catch (e) {
             console.error("Something went wrong jebbing", e)
-            interaction.reply({
-                content: "Unexpected error occured whilst jebbing",
-                ephemeral: true
-            })
+            try {
+                await interaction.followUp({
+                    content: "Unexpected error occured whilst jebbing",
+                    ephemeral: true
+                })
+            }
+            catch (e2) {
+                console.error("Something went wrong replying due to eror", e)
+            }
         }
     }
 
