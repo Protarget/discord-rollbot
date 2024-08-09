@@ -8,10 +8,11 @@ export default class CompleteModule extends Module {
     private readonly boundListener = this.onCompletion.bind(this)
 
     public async onCompletion(interaction: ChatInputCommandInteraction) {
+        await interaction.deferReply()
         const prompt = interaction.options.getString("prompt")
         const completion = await openai.complete(prompt)
         const boldPrompt = bold(completion.prompt)
-        interaction.reply(boldPrompt + completion.response)
+        await interaction.followUp(boldPrompt + completion.response)
     }
     
     public getCommands(): ModuleCommand[] {
