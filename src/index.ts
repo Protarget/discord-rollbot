@@ -4,6 +4,7 @@ import RollModule from "./modules/RollModule"
 import AutoRoleModule from "./modules/AutoRoleModule"
 import * as fs from "fs"
 import JebModule from "./modules/JebModule"
+import WillYouPressTheButtonModule from "./modules/WillYouPressTheButtonModule"
 
 async function launchBot() {
     const rollbot = new Rollbot(
@@ -12,7 +13,8 @@ async function launchBot() {
         new RollModule(),
         new CompleteModule(),
         new AutoRoleModule("roles.json"),
-        new JebModule()
+        new JebModule(),
+        new WillYouPressTheButtonModule()
     ])
 
     process.on("beforeExit", async () => {
