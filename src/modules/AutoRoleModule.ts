@@ -178,7 +178,7 @@ class AutoRoleData {
     }
 }
 
-export default class AutoRoleModule implements Module {
+export default class AutoRoleModule extends Module {
     public readonly name = "autorole"
 
     private data: AutoRoleData
@@ -188,6 +188,7 @@ export default class AutoRoleModule implements Module {
     private readonly boundRoleDeleted = this.onRoleDeleted.bind(this)
 
     constructor(dataFile: string) {
+        super()
         this.dataFile = dataFile
     }
 

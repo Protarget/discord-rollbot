@@ -5,6 +5,9 @@ import AutoRoleModule from "./modules/AutoRoleModule"
 import * as fs from "fs"
 import JebModule from "./modules/JebModule"
 import DilemmaModule from "./modules/DilemmaModule"
+import RandomLineModule from "./modules/RandomLineModule"
+import FrcModule from "./modules/FrcModule"
+import WeatherModule from "./modules/WeatherModule"
 
 async function launchBot() {
     const rollbot = new Rollbot(
@@ -14,7 +17,13 @@ async function launchBot() {
         new CompleteModule(),
         new AutoRoleModule("roles.json"),
         new JebModule(),
-        new DilemmaModule()
+        new DilemmaModule(),
+        new RandomLineModule("oppa", "./data/words.txt", "Abbet a pitch-perfect Korean style dance!", line => `Opp. Opp Opp... Oppa ${line} style!`),
+        new RandomLineModule("mao", "./data/mao.txt", "Reply with a random Mao quotation."),
+        new RandomLineModule("gd", "./data/gd.txt", "Fetch a random Graey Dave tweet."),
+        new RandomLineModule("mikef", "./data/mikef.txt", "Fetch a random Mike F tweet."),
+        new FrcModule("./data/frc_days.txt", "./data/frc_months.txt"),
+        new WeatherModule(),
     ])
 
     process.on("beforeExit", async () => {

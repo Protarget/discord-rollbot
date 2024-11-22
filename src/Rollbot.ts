@@ -74,10 +74,10 @@ export default class Rollbot {
                 for (const moduleStartPromise of moduleStartPromises) {
                     try {
                         await moduleStartPromise.promise
-                        console.log(`Started module '${moduleStartPromise.module.name}'`)
+                        console.log(`Started module '${moduleStartPromise.module.getName()}'`)
                     }
                     catch (e) {
-                        console.log(`Failed to start module '${moduleStartPromise.module.name}' due to error`, e) 
+                        console.log(`Failed to start module '${moduleStartPromise.module.getName()}' due to error`, e) 
                     }
                 }
 
@@ -100,10 +100,10 @@ export default class Rollbot {
             for (const moduleStopPromise of moduleStopPromises) {
                 try {
                     await moduleStopPromise.promise
-                    console.log(`Stopped module '${moduleStopPromise.module.name}'`)
+                    console.log(`Stopped module '${moduleStopPromise.module.getName()}'`)
                 }
                 catch (e) {
-                    console.log(`Failed to stop module '${moduleStopPromise.module.name}' due to error`, e) 
+                    console.log(`Failed to stop module '${moduleStopPromise.module.getName()}' due to error`, e) 
                 }
             }
 

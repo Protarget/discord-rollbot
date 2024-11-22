@@ -19,4 +19,8 @@ export default class Module {
     public getCommands(): ModuleCommand[] {
         return []
     }
+
+    public getName(): string {
+        return this.name
+    }
 }
