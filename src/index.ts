@@ -8,6 +8,7 @@ import DilemmaModule from "./modules/DilemmaModule"
 import RandomLineModule from "./modules/RandomLineModule"
 import FrcModule from "./modules/FrcModule"
 import WeatherModule from "./modules/WeatherModule"
+import ConnectionsScoreModule from "./modules/ConnectionsScoreModule"
 
 async function launchBot() {
     const rollbot = new Rollbot(
@@ -24,6 +25,7 @@ async function launchBot() {
         new RandomLineModule("mikef", "./data/mikef.txt", "Fetch a random Mike F tweet."),
         new FrcModule("./data/frc_days.txt", "./data/frc_months.txt"),
         new WeatherModule(),
+        new ConnectionsScoreModule()
     ])
 
     process.on("beforeExit", async () => {
