@@ -74,7 +74,7 @@ export default class ConnectionsScoreModule extends Module {
 
                     if (success) {
                         score += scoreIndex * colorPoints(lineColor)
-                        scoreIndex -= 1
+                        scoreIndex = Math.max(0, scoreIndex - 1)
                     }
                 }
 
