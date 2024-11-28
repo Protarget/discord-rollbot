@@ -68,6 +68,7 @@ export default class ConnectionsScoreModule extends Module {
                         else if (lineColor !== color) {
                             success = false
                             penaltyMultiplier = Math.max(0, penaltyMultiplier - 0.25)
+                            break
                         }
                     }
 
