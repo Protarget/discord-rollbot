@@ -24,7 +24,8 @@ async function launchBot() {
         new RandomLineModule("gd", "./data/gd.txt", "Fetch a random Graey Dave tweet."),
         new RandomLineModule("mikef", "./data/mikef.txt", "Fetch a random Mike F tweet."),
         new FrcModule("./data/frc_days.txt", "./data/frc_months.txt"),
-        new WeatherModule()
+        new WeatherModule(),
+        new ConnectionsScoreModule()
     ])
 
     process.on("beforeExit", async () => {
