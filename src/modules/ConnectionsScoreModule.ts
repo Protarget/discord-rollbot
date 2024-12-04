@@ -80,7 +80,7 @@ export default class ConnectionsScoreModule extends Module {
 
                 score *= penaltyMultiplier
 
-                message.channel.send(`Score: ${score}`)
+                message.channel.send(`||Score: ${score}||`)
             }
         }
         catch (e) {
