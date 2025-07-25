@@ -23,7 +23,7 @@ async function launchBot() {
         new RandomLineModule("mao", "./data/mao.txt", "Reply with a random Mao quotation."),
         new RandomLineModule("gd", "./data/gd.txt", "Fetch a random Graey Dave tweet."),
         new RandomLineModule("mikef", "./data/mikef.txt", "Fetch a random Mike F tweet."),
-        new RandomLineModule("bard", "./data/the_complete_works_of_william_shakespeare.txt", "Reply with a random Shakespeare.", quote => quote.replace(`/`, `\n`)),
+        new RandomLineModule("bard", "./data/the_complete_works_of_william_shakespeare.txt", "Reply with a random Shakespeare.", quote => quote.replaceAll(`/`, `\n`)),
         new FrcModule("./data/frc_days.txt", "./data/frc_months.txt"),
         new WeatherModule(),
         new ConnectionsScoreModule()
