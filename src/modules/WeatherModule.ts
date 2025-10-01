@@ -1,8 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, bold } from "discord.js"
 import Module, { ModuleCommand } from "./Module"
-import * as fs from "fs"
-import * as roman from "roman-numerals"
-import * as seasons from "seasons-dates"
+import {parseMetar}  from "metar-taf-parser"
+import en from "metar-taf-parser/locale/en"
 
 export default class WeatherModule extends Module {
     public readonly name = "weather"
@@ -42,19 +41,78 @@ export default class WeatherModule extends Module {
 
     public async onMetar(interaction: ChatInputCommandInteraction) {
         try {
-            const metarLocation = interaction.options.getString("location")
+            const metarLocation = interaction.options.getString("location").toUpperCase()
             await interaction.deferReply()
     
             if (metarLocation.match(/^[A-Z0-9]{4}$/)) {
                 const page = await fetch("http://tgftp.nws.noaa.gov/data/observations/metar/stations/" + metarLocation + ".TXT")
                 const pageText = await page.text()
-                const metar = pageText
 
-                if (metar.includes("404 Not Found") === true) {
+                if (pageText.includes("404 Not Found") === true) {
                     await interaction.followUp({content: "Error: Unknown ICAO code: " + metarLocation})
                 }
                 else {
-                    await interaction.followUp({content: "```" + metar.split("\n")[1] + "```"})
+                    const metarRaw = pageText.split("\n")[1]
+                    const metar = parseMetar(metarRaw, {locale: en})
+                    let metarOut = "```" + metarRaw + "\n\n"
+                    metarOut += `Station: ${metar.station}\n`
+                    metarOut += `Time: ${metar.hour.toString().padStart(2,'0')}:${metar.minute.toString().padStart(2,'0')} UTC (Day of month: ${metar.day})\n`
+                    if (metar.wind.speed > 0) {
+                        metarOut += `Wind: ${en.Converter[metar.wind.direction]} at ${metar.wind.speed} ${metar.wind.unit}`
+                        if (metar.wind.gust !== undefined) {
+                            metarOut += ` (gusts at ${metar.wind.gust} ${metar.wind.unit})\n`
+                        } else {
+                            metarOut += "\n"
+                        }
+                    } else {
+                        metarOut += `Wind: none\n`
+                    }
+                    metarOut += `Visibility: ${metar.visibility.value} ${metar.visibility.unit}\n`
+                    if (metar.weatherConditions.length > 0) {
+                        metarOut += "Weather conditions: \n"
+                        metar.weatherConditions.forEach(condition => {
+                            metarOut += "  "
+                            if (condition.intensity !== undefined) {
+                                if (condition.intensity === "+") {
+                                    metarOut += `${en["intensity-plus"]} `
+                                } else {
+                                    metarOut += `${en.Intensity[condition.intensity]} `
+                                }
+                            }
+                            if (condition.descriptive !== undefined) {
+                                metarOut += `${en.Descriptive[condition.descriptive]} `
+                            }
+                            if (condition.phenomenons.length > 0) {
+                                condition.phenomenons.forEach(phenomenon => {
+                                    metarOut += `${en.Phenomenon[phenomenon]}`
+                                });
+                            }
+                            metarOut += "\n"
+                        })
+                    }
+                    if (metar.clouds.length > 0) {
+                        metarOut += "Clouds:\n"
+                        metar.clouds.forEach(cloud => {
+                            metarOut += `  ${en.CloudQuantity[cloud.quantity]} at ${cloud.height}`
+                            if (cloud.type !== undefined) {
+                                metarOut += ` (${en.CloudType[cloud.type]})`
+                            }
+                            metarOut += "\n"
+                        });
+                    }
+                    metarOut += `Temperature: ${metar.temperature}°C\n`
+                    metarOut += `Dew Point: ${metar.dewPoint}°C\n`
+                    metarOut += `Pressure: ${metar.altimeter.value} ${metar.altimeter.unit}\n`
+                    if (metar.remarks.length > 0) {
+                        metarOut += "\nRemarks:\n"
+                        metar.remarks.forEach(remark => {
+                            if (remark.description !== undefined) {
+                                metarOut += remark.description + "\n"
+                            }
+                        })
+                    }
+                    metarOut += "```"
+                    await interaction.followUp({content: metarOut})
                 }
             }
             else {
