@@ -140,7 +140,7 @@ export default class RotationModule extends Module {
         const key = interaction.guildId ?? interaction.channelId
         const rotation = new Rotation({players, stations, mode})
         this.rotations.set(key, rotation)
-.
+
         await this.deactivateButton(key)
 
         const lines = [
