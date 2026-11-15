@@ -1,14 +1,10 @@
 export enum RotationMode {
-    /** Minimize how often a player plays in consecutive rounds. */
     Spread = "spread",
-    /** Maximize how often a player plays in consecutive rounds. */
     Streak = "streak"
 }
 
 export interface RotationMatch {
-    /** Index of the round this match belongs to (0-based). */
     round: number
-    /** Station number this match is played on (1-based). */
     station: number
     playerA: string
     playerB: string
@@ -36,9 +32,6 @@ export default class Rotation {
         this.stations = options.stations
         this.mode = options.mode
 
-        // The scheduler is deterministic, so the order of the input list would
-        // otherwise bias the schedule. Shuffling the roster first makes the
-        // result depend only on the set of players.
         const roster = Rotation.shuffle(this.players)
         const rounds = Rotation.buildRounds(roster, this.stations, this.mode)
 
@@ -78,8 +71,8 @@ export default class Rotation {
         return this.currentRound
     }
 
-    public isFinished(): boolean {
-        return this.currentRound >= this.roundCount
+    public isLastRound(): boolean {
+        return this.currentRound >= this.roundCount - 1
     }
 
     public getCurrentMatches(): RotationMatch[] {
@@ -104,12 +97,12 @@ export default class Rotation {
     }
 
     public advance(): boolean {
-        if (this.isFinished()) {
+        if (this.roundCount === 0) {
             return false
         }
 
-        this.currentRound++
-        return !this.isFinished()
+        this.currentRound = (this.currentRound + 1) % this.roundCount
+        return this.currentRound === 0
     }
 
     public reset(): void {
@@ -147,7 +140,8 @@ export default class Rotation {
                     lastPlayed,
                     playedPairs,
                     round,
-                    mode
+                    mode,
+                    roundCount
                 )
 
                 if (pair === null) {
@@ -171,7 +165,7 @@ export default class Rotation {
             rounds.push(pairs)
         }
 
-        return rounds
+        return Rotation.rotateToBestStart(rounds, mode)
     }
 
     private static pickPair(
@@ -181,7 +175,8 @@ export default class Rotation {
         lastPlayed: Map<string, number>,
         playedPairs: Set<string>,
         round: number,
-        mode: RotationMode
+        mode: RotationMode,
+        roundCount: number
     ): Pair | null {
         const available = players.filter(x => !used.has(x))
         if (available.length < 2) {
@@ -203,7 +198,8 @@ export default class Rotation {
                     lastPlayed,
                     playedPairs,
                     round,
-                    mode
+                    mode,
+                    roundCount
                 )
 
                 if (score < bestScore) {
@@ -223,25 +219,67 @@ export default class Rotation {
         lastPlayed: Map<string, number>,
         playedPairs: Set<string>,
         round: number,
-        mode: RotationMode
+        mode: RotationMode,
+        roundCount: number
     ): number {
         const repeatPenalty = playedPairs.has(Rotation.pairKey(first, second)) ? 1000 : 0
 
         const firstLast = lastPlayed.get(first) as number
         const secondLast = lastPlayed.get(second) as number
 
-        // How long each player has been waiting. A player who has not played
-        // yet is treated as having waited the longest.
         const firstWait = firstLast < 0 ? Number.MAX_SAFE_INTEGER : round - firstLast
         const secondWait = secondLast < 0 ? Number.MAX_SAFE_INTEGER : round - secondLast
         const wait = Math.min(firstWait, secondWait)
 
-        // `Spread` wants the longest wait, `Streak` the shortest.
         const recencyScore = mode === RotationMode.Spread ? -wait : wait
 
         const gamesScore = (gamesPlayed.get(first) as number) + (gamesPlayed.get(second) as number)
 
         return repeatPenalty + recencyScore * 10 + gamesScore
+    }
+
+
+    private static rotateToBestStart(rounds: Pair[][], mode: RotationMode): Pair[][] {
+        if (rounds.length <= 2) {
+            return rounds
+        }
+
+        let bestIndex = 0
+        let bestScore = Number.POSITIVE_INFINITY
+
+        for (let index = 0; index < rounds.length; index++) {
+            const last = rounds[(index - 1 + rounds.length) % rounds.length]
+            const first = rounds[index]
+            const overlap = Rotation.overlapScore(Rotation.playersIn(last), first)
+
+            const score = mode === RotationMode.Spread ? overlap : -overlap
+
+            if (score < bestScore) {
+                bestScore = score
+                bestIndex = index
+            }
+        }
+
+        return [...rounds.slice(bestIndex), ...rounds.slice(0, bestIndex)]
+    }
+
+    private static overlapScore(previous: Set<string>, pairs: Pair[]): number {
+        let score = 0
+        for (const player of Rotation.playersIn(pairs)) {
+            if (previous.has(player)) {
+                score++
+            }
+        }
+        return score
+    }
+
+    private static playersIn(pairs: Pair[]): Set<string> {
+        const players = new Set<string>()
+        for (const [first, second] of pairs) {
+            players.add(first)
+            players.add(second)
+        }
+        return players
     }
 
     private static shuffle(players: string[]): string[] {

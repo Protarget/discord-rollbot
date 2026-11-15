@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, Client, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandGroupBuilder, SlashCommandSubcommandsOnlyBuilder } from "discord.js"
+import { ButtonInteraction, ChatInputCommandInteraction, Client, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandGroupBuilder, SlashCommandSubcommandsOnlyBuilder } from "discord.js"
 
 export interface ModuleCommand {
     data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder
@@ -18,6 +18,10 @@ export default class Module {
 
     public getCommands(): ModuleCommand[] {
         return []
+    }
+
+    public async onButton(interaction: ButtonInteraction): Promise<boolean> {
+        return false
     }
 
     public getName(): string {

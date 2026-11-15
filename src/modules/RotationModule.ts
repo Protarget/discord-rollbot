@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js"
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChatInputCommandInteraction, Client, SlashCommandBuilder } from "discord.js"
 import Module, { ModuleCommand } from "./Module"
 import Rotation, { RotationMatch, RotationMode } from "./rotation/Rotation"
 
@@ -7,6 +7,18 @@ const MAX_PLAYERS = 32
 const MIN_STATIONS = 1
 const MAX_STATIONS = 16
 const DEFAULT_STATIONS = 1
+const NEXT_BUTTON_PREFIX = "rotation:next"
+
+interface RotationMessage {
+    content: string
+    components: ActionRowBuilder<ButtonBuilder>[]
+}
+
+interface ActiveButton {
+    channelId: string
+    messageId: string
+    round: number
+}
 
 const MODE_LABELS: {[mode: string]: string} = {
     [RotationMode.Spread]: "spread (minimize back-to-back games)",
@@ -17,6 +29,20 @@ export default class RotationModule extends Module {
     public readonly name = "rotation"
 
     private readonly rotations: Map<string, Rotation> = new Map()
+
+    private readonly activeButtons: Map<string, ActiveButton> = new Map()
+
+    private client: Client | null = null
+
+    public async onStart(client: Client): Promise<void> {
+        this.client = client
+    }
+
+    public async onStop(client: Client): Promise<void> {
+        this.client = null
+        this.rotations.clear()
+        this.activeButtons.clear()
+    }
 
     public async onRotation(interaction: ChatInputCommandInteraction) {
         try {
@@ -111,8 +137,11 @@ export default class RotationModule extends Module {
             return
         }
 
+        const key = interaction.guildId ?? interaction.channelId
         const rotation = new Rotation({players, stations, mode})
-        this.rotations.set(interaction.guildId ?? interaction.channelId, rotation)
+        this.rotations.set(key, rotation)
+.
+        await this.deactivateButton(key)
 
         const lines = [
             `Rotation started with ${players.length} players across ${stations} station${stations === 1 ? "" : "s"}`,
@@ -122,10 +151,19 @@ export default class RotationModule extends Module {
             this.formatRound(rotation),
             "",
             "Full schedule:",
-            ...this.formatSchedule(rotation)
+            this.formatSchedule(rotation)
         ]
 
-        await interaction.reply({content: lines.join("\n")})
+        const message = await interaction.reply({
+            ...this.withNextButton(rotation, lines.join("\n")),
+            fetchReply: true
+        })
+
+        this.activeButtons.set(key, {
+            channelId: message.channelId,
+            messageId: message.id,
+            round: rotation.getCurrentRound()
+        })
     }
 
     private async showCurrent(interaction: ChatInputCommandInteraction) {
@@ -147,19 +185,100 @@ export default class RotationModule extends Module {
             return
         }
 
-        if (rotation.isFinished()) {
-            await interaction.reply({content: `The rotation is already complete after ${rotation.getRoundCount()} rounds. Use \`/rotation start\` to begin a new one.`, ephemeral: true})
+        if (rotation.getRoundCount() === 0) {
+            await interaction.reply({content: "This rotation has no rounds to play.", ephemeral: true})
             return
         }
 
-        rotation.advance()
+        const key = interaction.guildId ?? interaction.channelId
+        const wrapped = rotation.advance()
 
-        if (rotation.isFinished()) {
-            await interaction.reply({content: `Rotation complete after ${rotation.getRoundCount()} rounds. Use \`/rotation start\` to begin a new one.`})
+        await this.deactivateButton(key)
+
+        const message = await interaction.reply({
+            ...this.withNextButton(rotation, this.formatAdvance(rotation, wrapped)),
+            fetchReply: true
+        })
+
+        this.activeButtons.set(key, {
+            channelId: message.channelId,
+            messageId: message.id,
+            round: rotation.getCurrentRound()
+        })
+    }
+
+    public async onButton(interaction: ButtonInteraction): Promise<boolean> {
+        if (!interaction.customId.startsWith(NEXT_BUTTON_PREFIX)) {
+            return false
+        }
+
+        const key = interaction.guildId ?? interaction.channelId
+        const rotation = this.rotations.get(key)
+
+        if (!rotation) {
+            await interaction.reply({content: "There is no rotation in progress. Use `/rotation start` to begin one.", ephemeral: true})
+            return true
+        }
+
+        const expectedRound = Number(interaction.customId.slice(NEXT_BUTTON_PREFIX.length + 1))
+
+        if (rotation.getCurrentRound() !== expectedRound) {
+            await interaction.reply({content: "That button has already been used. Use the button on the latest message, or `/rotation next`.", ephemeral: true})
+            return true
+        }
+
+        const wrapped = rotation.advance()
+
+        await this.deactivateButton(key)
+
+        const message = await interaction.reply({
+            ...this.withNextButton(rotation, this.formatAdvance(rotation, wrapped)),
+            fetchReply: true
+        })
+
+        this.activeButtons.set(key, {
+            channelId: message.channelId,
+            messageId: message.id,
+            round: rotation.getCurrentRound()
+        })
+        return true
+    }
+
+    private async deactivateButton(key: string): Promise<void> {
+        const active = this.activeButtons.get(key)
+
+        if (!active) {
             return
         }
 
-        await interaction.reply({content: this.formatRound(rotation)})
+        this.activeButtons.delete(key)
+
+        try {
+            const channel = await this.client.channels.fetch(active.channelId)
+
+            if (!channel || !channel.isTextBased() || !("messages" in channel)) {
+                return
+            }
+
+            const message = await channel.messages.fetch(active.messageId)
+            await message.edit({components: []})
+        }
+        catch (e) {
+            // The message may have been deleted, which is fine.
+            console.error("Unable to remove the rotation button from the previous message", e)
+        }
+    }
+
+    private withNextButton(rotation: Rotation, content: string): RotationMessage {
+        const button = new ButtonBuilder()
+            .setCustomId(`${NEXT_BUTTON_PREFIX}:${rotation.getCurrentRound()}`)
+            .setLabel("Next round")
+            .setStyle(ButtonStyle.Primary)
+
+        return {
+            content,
+            components: [new ActionRowBuilder<ButtonBuilder>().addComponents(button)]
+        }
     }
 
     private async showStatus(interaction: ChatInputCommandInteraction) {
@@ -174,7 +293,7 @@ export default class RotationModule extends Module {
             `Players (${rotation.getPlayers().length}): ${rotation.getPlayers().join(", ")}`,
             `Stations: ${rotation.getStations()}`,
             `Mode: ${MODE_LABELS[rotation.getMode()]}`,
-            `Progress: round ${Math.min(rotation.getCurrentRound() + 1, rotation.getRoundCount())} of ${rotation.getRoundCount()}`
+            `Progress: round ${rotation.getCurrentRound() + 1} of ${rotation.getRoundCount()}`
         ]
 
         await interaction.reply({content: lines.join("\n")})
@@ -189,6 +308,7 @@ export default class RotationModule extends Module {
         }
 
         this.rotations.delete(key)
+        await this.deactivateButton(key)
         await interaction.reply({content: "Rotation ended"})
     }
 
@@ -218,48 +338,103 @@ export default class RotationModule extends Module {
         return players
     }
 
-    private formatRound(rotation: Rotation): string {
-        const round = rotation.getCurrentRound()
+    private formatAdvance(rotation: Rotation, wrapped: boolean): string {
+        const round = this.formatRound(rotation)
+
+        return round
+    }
+
+    private formatRound(rotation: Rotation): string {        const round = rotation.getCurrentRound()
         const matches = rotation.getCurrentMatches()
         const sittingOut = rotation.getCurrentSittingOut()
+        const multipleStations = rotation.getStations() > 1
 
         const lines = [`Round ${round + 1}/${rotation.getRoundCount()}`]
 
+        const widths = this.columnWidths(matches)
+
         for (const match of matches) {
-            lines.push(`Station ${match.station}: ${this.formatMatch(match)}`)
+            const prefix = multipleStations ? `Station ${match.station}: ` : ""
+            lines.push((prefix + this.formatMatch(match, widths)).trimEnd())
         }
 
-        // With a single station everyone else is obviously waiting, so the
-        // list adds noise rather than information.
-        if (sittingOut.length > 0 && rotation.getStations() > 1) {
+        if (sittingOut.length > 0 && multipleStations) {
             lines.push(`Sitting out: ${sittingOut.join(", ")}`)
         }
 
-        return lines.join("\n")
+        return codeBlock(lines.join("\n"))
     }
 
-    private formatMatch(match: RotationMatch): string {
-        return `${match.playerA} vs ${match.playerB}`
+    private formatMatch(match: RotationMatch, widths: ColumnWidths): string {
+        return `${match.playerA.padEnd(widths.first)} vs ${match.playerB.padEnd(widths.second)}`
     }
 
-    /** Renders every round of the schedule, one line per round. */
-    private formatSchedule(rotation: Rotation): string[] {
+    private formatSchedule(rotation: Rotation): string {
         const lines: string[] = []
+        const multipleStations = rotation.getStations() > 1
+        const roundWidth = String(rotation.getRoundCount()).length
+
+        const widths = this.scheduleColumnWidths(rotation)
 
         for (let round = 0; round < rotation.getRoundCount(); round++) {
             const matches = rotation.getMatchesForRound(round)
             const sittingOut = rotation.getSittingOutForRound(round)
 
-            const parts = matches.map(match => `S${match.station}: ${this.formatMatch(match)}`)
-            let line = `R${round + 1}: ${parts.join(" | ")}`
+            const parts = matches.map(match => {
+                const pair = this.formatMatch(match, widths)
+                return multipleStations ? `S${match.station}: ${pair}` : pair
+            })
 
-            if (sittingOut.length > 0 && rotation.getStations() > 1) {
+            const label = `R${String(round + 1).padStart(roundWidth)}:`
+            let line = `${label} ${parts.join(" | ")}`
+
+            if (sittingOut.length > 0 && multipleStations) {
                 line += ` (out: ${sittingOut.join(", ")})`
             }
 
-            lines.push(line)
+            lines.push(line.trimEnd())
         }
 
-        return lines
+        return codeBlock(lines.join("\n"))
     }
+
+    private columnWidths(matches: RotationMatch[]): ColumnWidths {
+        let first = 0
+        let second = 0
+
+        for (const match of matches) {
+            first = Math.max(first, match.playerA.length)
+            second = Math.max(second, match.playerB.length)
+        }
+
+        return {first, second}
+    }
+
+    private scheduleColumnWidths(rotation: Rotation): ColumnWidths {
+        const perStation: ColumnWidths[] = []
+
+        for (let round = 0; round < rotation.getRoundCount(); round++) {
+            for (const match of rotation.getMatchesForRound(round)) {
+                const index = match.station - 1
+                const widths = perStation[index] ?? {first: 0, second: 0}
+                widths.first = Math.max(widths.first, match.playerA.length)
+                widths.second = Math.max(widths.second, match.playerB.length)
+                perStation[index] = widths
+            }
+        }
+
+        return {
+            first: perStation.reduce((width, x) => Math.max(width, x.first), 0),
+            second: perStation.reduce((width, x) => Math.max(width, x.second), 0)
+        }
+    }
+}
+
+interface ColumnWidths {
+    first: number
+    second: number
+}
+
+function codeBlock(text: string): string {
+    return "```\n" + text + "\n```"
 }

@@ -33,6 +33,21 @@ export default class Rollbot {
         this.registerCommands()
 
         this.client.on(Events.InteractionCreate, async interaction => {
+            if (interaction.isButton()) {
+                for (const module of this.modules) {
+                    try {
+                        if (await module.onButton(interaction)) {
+                            return
+                        }
+                    }
+                    catch (e) {
+                        console.error(`Error while handling a button in module '${module.getName()}'`, e)
+                    }
+                }
+
+                return
+            }
+
             if (!interaction.isChatInputCommand()) {
                 return
             }
