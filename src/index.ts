@@ -11,6 +11,7 @@ import ConnectionsScoreModule from "./modules/ConnectionsScoreModule"
 import WeedModule from "./modules/WeedModule"
 import WordleModule from "./modules/WordleModule"
 import TriviaModule from "./modules/TriviaModule"
+import RotationModule from "./modules/RotationModule"
 import { TriviaFileQuestionGenerator, TriviaJeopardyFileQuestionGenerator } from "./modules/trivia/TriviaQuestions"
 
 async function launchBot() {
@@ -41,7 +42,8 @@ async function launchBot() {
         new TriviaModule({
             jeopardy: new TriviaJeopardyFileQuestionGenerator("./data/Trivia/jeopardy.json"),
             triviaqa: new TriviaFileQuestionGenerator("./data/Trivia/questions.txt")
-        })
+        }),
+        new RotationModule()
     ])
 
     process.on("beforeExit", async () => {
