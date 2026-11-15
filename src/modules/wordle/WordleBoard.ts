@@ -59,6 +59,6 @@ export default class WordleBoard {
     }
 
     public toPrettyString(): string {
-        return this.guesses.map(x => x.toPrettyString()).join("\n")
+        return this.guesses.map(x => `\`${x.toGuessString()}\` ${x.toPrettyString()}`).join("\n")
     }
 }

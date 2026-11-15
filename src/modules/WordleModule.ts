@@ -145,10 +145,10 @@ export default class WordleModule extends Module {
                 await interaction.reply({content: this.formatMove(game, result)})
                 return
             case WordleGameGuessResultType.Invalid:
-                await interaction.reply({content: `Invalid move: ${result.getReason()}`, ephemeral: true})
+                await interaction.reply({content: `Invalid move: ${result.getReason()}${this.formatBoard(game)}`, ephemeral: true})
                 return
             case WordleGameGuessResultType.Unsafe:
-                await interaction.reply({content: `Unsafe move: ${result.getReason()}\nUse \`/wordle guess\` with \`confirm\` set to override safety checks`, ephemeral: true})
+                await interaction.reply({content: `Unsafe move: ${result.getReason()}\nUse \`/wordle guess\` with \`confirm\` set to override safety checks${this.formatBoard(game)}`, ephemeral: true})
                 return
         }
     }
@@ -164,6 +164,7 @@ export default class WordleModule extends Module {
         const lines = [`Wordle Currently Playing ${game.toProgressString()}`]
 
         if (game.getGuessCount() > 0) {
+            lines.push("")
             lines.push(game.toPrettyString(true))
         }
 
@@ -179,15 +180,23 @@ export default class WordleModule extends Module {
         }
 
         this.games.delete(channelId)
-        await interaction.reply({content: `Game abandoned. The word was ${game.getCorrectWord()}`})
+        await interaction.reply({content: `Game abandoned. The word was ${game.getCorrectWord()}${this.formatBoard(game)}`})
     }
 
     private formatMove(game: WordleGame, result: WordleGameGuessResult): string {
-        return `${result.getScore().toPrettyString()} (${game.toProgressString()}) ${game.toLetterGroupString()}`
+        return game.toPrettyString(true)
     }
 
     private formatEndOfGame(game: WordleGame, victory: boolean): string {
         const outcome = victory ? "Victory" : "Failure"
-        return `Wordle ${outcome} (${game.getCorrectWord()}) ${game.toProgressString()}\n${game.toPrettyString(true)}`
+        return `Wordle ${outcome} (${game.getCorrectWord()}) ${game.toProgressString()}\n\n${game.toPrettyString(true)}`
+    }
+
+    private formatBoard(game: WordleGame): string {
+        if (game.getGuessCount() === 0) {
+            return ""
+        }
+
+        return `\n\n${game.toPrettyString(true)}`
     }
 }

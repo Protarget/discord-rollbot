@@ -128,29 +128,35 @@ export default class WordleGame {
         const unknownGroup = this.board.getUnknownLetters()
 
         if (correctGroup.length > 0) {
-            outputGroups.push(`🟩 ${correctGroup.join("")}`)
+            outputGroups.push(`🟩 \`${correctGroup.join("")}\``)
         }
 
         if (partiallyCorrectGroup.length > 0) {
-            outputGroups.push(`🟨 ${partiallyCorrectGroup.join("")}`)
+            outputGroups.push(`🟨 \`${partiallyCorrectGroup.join("")}\``)
         }
 
         if (incorrectGroup.length > 0) {
-            outputGroups.push(`⬛ ${incorrectGroup.join("")}`)
+            outputGroups.push(`⬛ \`${incorrectGroup.join("")}\``)
+        }
+
+        const lines: string[] = []
+
+        if (outputGroups.length > 0) {
+            lines.push(outputGroups.join(" "))
         }
 
         if (unknownGroup.length > 0) {
-            outputGroups.push(unknownGroup.join(""))
+            lines.push(`Unused: \`${unknownGroup.join("")}\``)
         }
 
-        return outputGroups.join(" ")
+        return lines.join("\n")
     }
 
     public toPrettyString(showAdditionalInfo: boolean = false): string {
         let boardString = this.board.toPrettyString()
 
         if (showAdditionalInfo) {
-            boardString = `${boardString} (${this.toProgressString()}) ${this.toLetterGroupString()}`
+            boardString = `${boardString}\n\n${this.toLetterGroupString()}`
         }
 
         return boardString

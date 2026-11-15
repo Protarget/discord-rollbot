@@ -83,4 +83,8 @@ export default class WordleWordScore {
     public toPrettyString(): string {
         return this.getLettersAndScores().map(([, score]) => SQUARES[score]).join("")
     }
+
+    public toGuessString(): string {
+        return this.word.toString().toUpperCase()
+    }
 }
