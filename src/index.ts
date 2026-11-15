@@ -1,5 +1,4 @@
 import Rollbot from "./Rollbot"
-import CompleteModule from "./modules/CompleteModule"
 import RollModule from "./modules/RollModule"
 import AutoRoleModule from "./modules/AutoRoleModule"
 import * as fs from "fs"
@@ -9,13 +8,16 @@ import RandomLineModule from "./modules/RandomLineModule"
 import FrcModule from "./modules/FrcModule"
 import WeatherModule from "./modules/WeatherModule"
 import ConnectionsScoreModule from "./modules/ConnectionsScoreModule"
+import WeedModule from "./modules/WeedModule"
+import WordleModule from "./modules/WordleModule"
+import TriviaModule from "./modules/TriviaModule"
+import { TriviaFileQuestionGenerator, TriviaJeopardyFileQuestionGenerator } from "./modules/trivia/TriviaQuestions"
 
 async function launchBot() {
     const rollbot = new Rollbot(
             fs.readFileSync("secrets/discord_token").toString("utf-8").trim(), 
             fs.readFileSync("secrets/discord_client_id").toString("utf-8").trim(), [
         new RollModule(),
-        new CompleteModule(),
         new AutoRoleModule("roles.json"),
         new JebModule(),
         new DilemmaModule(),
@@ -33,7 +35,13 @@ async function launchBot() {
                             .replaceAll("\\t", "\t")),
         new FrcModule("./data/frc_days.txt", "./data/frc_months.txt"),
         new WeatherModule(),
-        new ConnectionsScoreModule()
+        new ConnectionsScoreModule(),
+        new WeedModule("./data/Weed/strains.json"),
+        new WordleModule("./data/scrabble.txt"),
+        new TriviaModule({
+            jeopardy: new TriviaJeopardyFileQuestionGenerator("./data/Trivia/jeopardy.json"),
+            triviaqa: new TriviaFileQuestionGenerator("./data/Trivia/questions.txt")
+        })
     ])
 
     process.on("beforeExit", async () => {
